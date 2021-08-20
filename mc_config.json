@@ -1,0 +1,13 @@
+{
+    "playerName": "DURUMI_",
+    "mainBlock": "white_concrete",
+    "tickInterval": 100,
+    "channels": [
+        { "instrument": "harp", "block": "podzol" },
+        { "instrument": "bass", "block": "stripped_warped_hyphae" },
+        { "instrument": "pling", "block": "glowstone" },
+        { "instrument": "bassdrum", "block": "stone_bricks" },
+        { "instrument": "snare", "block": "orange_concrete_powder" },
+        { "instrument": "hat", "block": "lime_stained_glass" }
+    ]
+}

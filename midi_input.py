@@ -23,7 +23,7 @@ def print_device_info():
             % (i, interf, name, opened, in_out)
         )
 
-def input_main(device_id=None):
+def input_main(device_id=None, *callbacks):
     pg.init()
     pg.fastevent.init()
     event_get = pg.fastevent.get
@@ -50,7 +50,11 @@ def input_main(device_id=None):
             if e.type in [pg.QUIT]:
                 going = False
             if e.type in [midi.MIDIIN]:
-                midiEvent(e)
+                midiEvent(e, callbacks)
+                
+                #stop
+                if e.data1 == config['stopKey']:
+                    going = False
 
         if i.poll():
             midi_events = i.read(10)
@@ -63,12 +67,11 @@ def input_main(device_id=None):
     del i
     midi.quit()
 
-def printMidiInput(e):
-    if e.status >= config['firstChannel'] and e.status < (config['firstChannel'] + 16):
-        channel = e.status - config['firstChannel'] + 1
-        print(f'[keyDown] Channal:{channel}, Key: {e.data1}, Timestamp: {e.timestamp}')
+def midiEvent(e, callbacks):
+    channel = e.status - config['firstChannel'] + 1
+    if channel > 0:
+        # print(f'Channel:{channel}, Key: {e.data1}, Timestamp: {e.timestamp}')
+        for i in callbacks:
+            i(e)
 
-def midiEvent(e):
-    printMidiInput(e)
-
-input_main(config['deviceID'])
+# input_main(config['deviceID'])
