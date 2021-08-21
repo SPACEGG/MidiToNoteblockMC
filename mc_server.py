@@ -1,15 +1,14 @@
-import sys
-import asyncio
 import json
-from rcon import rcon
+from rcon import Client as rc
 
 #minecraft rcon server info
 fjson = open('server_config.json', 'r')
 config = json.load(fjson)
 fjson.close()
 
-async def execute(text):
-    return await rcon(text, host=config['host'], port=config['port'], passwd=config['passward'])
+server = rc(config['host'], config['port'])
+server.connect()
+server.login(config['password'])
 
-# res = asyncio.run(execute('scoreboard players get x dummy'))
-# print(res)
+def execute(text):
+    return server.run(text)

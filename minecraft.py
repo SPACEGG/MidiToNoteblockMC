@@ -1,7 +1,6 @@
 import json
-import asyncio
-from math import floor
-import mc_server
+from math import ceil, floor
+import mc_server as s
 
 class minecraft:
     def __init__(self):
@@ -13,17 +12,17 @@ class minecraft:
         self.isWaiting = True
         self.previousTime = 0
         self.channel = 0
-        self.sync = 0
-        self.initPos = list(map(floor, self.__getPlayerPos(self.config['playerName'])))
-        self.initProgress = 2
+        self.notes = []
+        self.pos = list(map(floor, self.__getPlayerPos(self.config['playerName'])))
+        self.offset = self.config['blockOffset']
         self.mainBlock = self.config['mainBlock']
-        self.progress = self.initProgress
+        self.progress = self.offset
 
     def __getPlayerPos(self, name :str) -> list:
         res = [
-            asyncio.run(mc_server.execute(f'data get entity {name} Pos[0]')),
-            asyncio.run(mc_server.execute(f'data get entity {name} Pos[1]')),
-            asyncio.run(mc_server.execute(f'data get entity {name} Pos[2]'))
+            s.execute(f'data get entity {name} Pos[0]'),
+            s.execute(f'data get entity {name} Pos[1]'),
+            s.execute(f'data get entity {name} Pos[2]')
         ]
         result = []
         for i in res:
@@ -31,12 +30,9 @@ class minecraft:
         return result
 
     #Build repeater
-    def __repeater(self, delay :int) -> list:
-        x = self.initPos[0] + self.progress
-        y = self.initPos[1]
-        z = self.initPos[2]
+    def __repeater(self, pos :list, delay :int):
         if delay == 0:
-            return []
+            return [], 0
 
         count = delay // 4
         last = delay % 4
@@ -44,66 +40,108 @@ class minecraft:
             count += 1
 
         result = []
-        result.append(f'fill {x} {y} {z} {x + count - 1} {y + 1} {z} {self.mainBlock}')
+        result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.mainBlock}')
+
         if last == 0:
-            result.append(f'fill {x} {y + 2} {z} {x + count - 1} {y + 2} {z} repeater[facing=west, delay=4]')
+            result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
         elif count == 1:
-            result.append(f'setblock {x} {y + 2} {z} repeater[facing=west, delay={last}]')
+            result.append(f'setblock {pos[0]} {pos[1] + 2} {pos[2]} repeater[facing=west, delay={last}]')
         else:
-            result.append(f'fill {x} {y + 2} {z} {x + count - 2} {y + 2} {z} repeater[facing=west, delay=4]')
-            result.append(f'setblock {x + count - 1} {y + 2} {z} repeater[facing=west, delay={last}]')
+            result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 2} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
+            result.append(f'setblock {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay={last}]')
 
-
-        self.progress += count
-        return result
+        return result, count
 
     #Build Noteblock
-    def __note(self, instBlock: str, pitch: str) -> list:
-        x = self.initPos[0] + self.progress
-        y = self.initPos[1]
-        z = self.initPos[2]
-
-        self.progress += 1
+    def __note(self, pos :list, instBlock: str, pitch: str) -> list:
         return [
-            f'setblock {x} {y} {z} {self.mainBlock}',
-            f'setblock {x} {y + 1} {z} {instBlock}',
-            f'setblock {x} {y + 2} {z} minecraft:note_block[note={pitch}]'
+            f'setblock {pos[0]} {pos[1]} {pos[2]} {self.mainBlock}',
+            f'setblock {pos[0]} {pos[1] + 1} {pos[2]} {instBlock}',
+            f'setblock {pos[0]} {pos[1] + 2} {pos[2]} minecraft:note_block[note={pitch}]'
             ]
+
+    #Calculate where noteblock is placed
+    def __calcPos(self, count :int) ->list:
+        calc = lambda x, c: [[x, i + 1] for i in range(ceil(c / 2))] + [[x, -i - 1] for i in range(floor(c / 2))]
+        result = []
+        if count <= 3:
+            result += calc(0, count - 1)
+            result += [[0, 0]]
+        else:
+            result += calc(1, count)
+
+        return result
+    
+    def __redstone(self, pos :list) ->list:
+        return [
+            f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0]} {pos[1] + 2} {pos[2]} {self.mainBlock}',
+            f'setblock {pos[0]} {pos[1] + 3} {pos[2]} redstone_wire'
+        ]
+
+    def __create(self, notes):
+        for i in notes:
+            dur = i[0]
+            if dur != 0:
+                pos = [self.pos[0] + self.progress, self.pos[1] + 4 * self.channel, self.pos[2]]
+                commands, progress = self.__repeater(pos, dur)
+                self.progress += progress
+                break
+
+        pos = [self.pos[0] + self.progress, self.pos[1] + 4 * self.channel, self.pos[2]]
+        offsets = self.__calcPos(len(notes))
+
+        k = 0
+        for i in offsets:
+            commands += self.__note([pos[0] + i[0], pos[1], pos[2] + i[1]], notes[k][1], notes[k][2])
+            k += 1
+
+        if len(notes) >= 4:
+            offsets.append([0, 0])
+            for i in offsets:
+                commands += self.__redstone([pos[0], pos[1], pos[2] + i[1]])
+        self.progress += 1
+
+        for i in commands:
+            s.execute(i)
 
     #Change to next channel/instrument
     def next(self):
         self.isWaiting = True
         self.channel += 1
-        self.progress = self.initProgress
+        self.progress = self.offset
 
         #TODO: Stop if out of channel index
         if self.channel >= len(self.config['channels']):
             pass
-        
-        x = 'hihihihiihi'
-        asyncio.run(mc_server.execute(f'say {x}'))
     
     #TODO: Finish build
     def finish(self):
-        asyncio.run(mc_server.execute('say Stop'))
+        s.execute('say Stop')
 
     #TODO: Build noteblock circuit
-    def build(self, key :int, timestamp :int):
+    def build(self, pitch :int, timestamp :int):
+        dur = 0
         if self.isWaiting:
+            dur += 1
             self.isWaiting = False
             self.previousTime = timestamp
 
-        dur = round((timestamp - self.previousTime) / self.config['tickInterval'])
+        dur += round((timestamp - self.previousTime) / self.config['tickInterval'])
         block = self.config['channels'][self.channel]['block']
         self.previousTime = timestamp
 
+        if pitch < 0:
+            self.__create(self.notes)
+            self.notes = []
+            return
+
         #same time
         if dur == 0:
-            self.sync += 1
+            self.notes.append([dur, block, pitch])
         else:
-            self.sync = 0
-
-        commands = self.__repeater(dur) + self.__note(block, key)
-
-        for i in commands:
-            asyncio.run(mc_server.execute(i))
+            if self.notes:
+                self.__create(self.notes)
+                self.notes = []
+                self.notes.append([dur, block, pitch])
+            else:
+                self.notes.append([dur, block, pitch])

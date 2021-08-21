@@ -1,6 +1,8 @@
 {
     "playerName": "DURUMI_",
     "mainBlock": "white_concrete",
+    "dimension": "overworld",
+    "blockOffset": 2,
     "tickInterval": 100,
     "channels": [
         { "instrument": "harp", "block": "podzol" },
