@@ -1,8 +1,9 @@
 {
     "playerName": "DURUMI_",
     "mainBlock": "white_concrete",
+    "button": "acacia_button",
     "dimension": "overworld",
-    "blockOffset": 2,
+    "blockOffset": 4,
     "tickInterval": 100,
     "channels": [
         { "instrument": "harp", "block": "podzol" },

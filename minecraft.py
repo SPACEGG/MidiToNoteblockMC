@@ -30,7 +30,7 @@ class minecraft:
         return result
 
     #Build repeater
-    def __repeater(self, pos :list, delay :int):
+    def __repeater(self, pos :list, delay :int, requireFloor=True):
         if delay == 0:
             return [], 0
 
@@ -40,7 +40,8 @@ class minecraft:
             count += 1
 
         result = []
-        result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.mainBlock}')
+        if requireFloor:
+            result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.mainBlock}')
 
         if last == 0:
             result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
@@ -55,12 +56,12 @@ class minecraft:
     #Build Noteblock
     def __note(self, pos :list, instBlock: str, pitch: str) -> list:
         return [
-            f'setblock {pos[0]} {pos[1]} {pos[2]} {self.mainBlock}',
+            f"setblock {' '.join(map(str, pos))} {self.mainBlock}",
             f'setblock {pos[0]} {pos[1] + 1} {pos[2]} {instBlock}',
             f'setblock {pos[0]} {pos[1] + 2} {pos[2]} minecraft:note_block[note={pitch}]'
             ]
 
-    #Calculate where noteblock is placed
+    #Calculate where noteblock will be placed
     def __calcPos(self, count :int) ->list:
         calc = lambda x, c: [[x, i + 1] for i in range(ceil(c / 2))] + [[x, -i - 1] for i in range(floor(c / 2))]
         result = []
@@ -74,7 +75,7 @@ class minecraft:
     
     def __redstone(self, pos :list) ->list:
         return [
-            f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0]} {pos[1] + 2} {pos[2]} {self.mainBlock}',
+            f"fill {' '.join(map(str, pos))} {pos[0]} {pos[1] + 2} {pos[2]} {self.mainBlock}",
             f'setblock {pos[0]} {pos[1] + 3} {pos[2]} redstone_wire'
         ]
 
@@ -116,9 +117,38 @@ class minecraft:
     
     #TODO: Finish build
     def finish(self):
-        s.execute('say Stop')
+        s.execute('say STOP')
 
-    #TODO: Build noteblock circuit
+        length = (self.channel + 1) // 3 + 1
+        x = self.pos[0] + self.offset - length - 1
+        y = self.pos[1]
+        blockY = range(y + (4 * self.channel) + 1, y, -2)
+        z = self.pos[2]
+        commands = []
+
+        #startblock
+        commands.append(f'setblock {x - 1} {y} {z} {self.mainBlock}')
+        commands.append(f'setblock {x - 2} {y} {z} {self.config["button"]}[face=wall, facing=west]')
+        commands.append(f'setblock {x} {y} {z} redstone_wall_torch[facing=east]')
+
+        #mainblock + redstone
+        tick = 0
+        for i in blockY:
+            if i % 4 == blockY[0] % 4:
+                commands.append(f'fill {x} {i} {z} {x + length} {i} {z} {self.mainBlock}')
+                commands.append(f'fill {x + 1} {i + 1} {z} {x + length} {i + 1} {z} redstone_wire')
+                commands += self.__repeater([x + 1, i - 1, z], tick, False)[0]
+            else:
+                commands.append(f'setblock {x} {i} {z} {self.mainBlock}')
+            
+            tick += 1
+
+        #redstone_torch
+        commands.append(f'fill {x} {y + 1} {z} {x} {y + (4 * self.channel) + 2} {z} minecraft:redstone_torch replace air')
+
+        for i in commands:
+            s.execute(i)
+
     def build(self, pitch :int, timestamp :int):
         dur = 0
         if self.isWaiting:
