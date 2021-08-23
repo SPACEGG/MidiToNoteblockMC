@@ -1,0 +1,5 @@
+{
+    "host": "Minecraft server Address",
+    "port": 25575,
+    "password": "RCON password (from server.properties)"
+}

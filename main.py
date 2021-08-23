@@ -1,5 +1,6 @@
 #START ME
 import json
+import sys
 import midi_input as midi
 from minecraft import minecraft
 
@@ -20,5 +21,10 @@ def switch(e):
         mc.finish()
     else:
         mc.build(key - config['minKey'], e.timestamp)
-        
-midi.input_main(config['deviceID'], switch)
+
+def main(argv):
+    # print(argv)
+    midi.input_main(config['deviceID'], switch)
+
+if __name__ == "__main__":
+    main(sys.argv)
