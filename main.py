@@ -22,8 +22,12 @@ def switch(e):
     else:
         mc.build(key - config['minKey'], e.timestamp)
 
+def arg(a):
+    if a in ['-ls', '--list']:
+        midi.print_device_info()
+
 def main(argv):
-    # print(argv)
+    arg(argv[-1])
     midi.input_main(config['deviceID'], switch)
 
 if __name__ == "__main__":

@@ -26,6 +26,8 @@ class minecraft:
         ]
         result = []
         for i in res:
+            if 'was found' in i:
+                raise Exception(f'{name} is not in the server!')
             result.append(float(i.split(' ')[-1][:-1]))
         return result
 

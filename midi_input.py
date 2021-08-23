@@ -8,6 +8,7 @@ fjson.close()
 
 # code from pygame Example (python -m pygame.examples.midi --input)
 def print_device_info():
+    midi.init()
     for i in range(midi.get_count()):
         r = midi.get_device_info(i)
         (interf, name, input, output, opened) = r
@@ -22,6 +23,7 @@ def print_device_info():
             "%2i: interface :%s:, name :%s:, opened :%s:  %s"
             % (i, interf, name, opened, in_out)
         )
+    midi.quit()
 
 def input_main(device_id=None, *callbacks):
     pg.init()
