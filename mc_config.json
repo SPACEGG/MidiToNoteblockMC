@@ -1,6 +1,6 @@
 {
     "playerName": "DURUMI_",
-    "mainBlock": "white_concrete",
+    "solidBlock": "white_concrete",
     "button": "acacia_button",
     "dimension": "overworld",
     "blockOffset": 4,

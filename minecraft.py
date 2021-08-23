@@ -15,7 +15,7 @@ class minecraft:
         self.notes = []
         self.pos = list(map(floor, self.__getPlayerPos(self.config['playerName'])))
         self.offset = self.config['blockOffset']
-        self.mainBlock = self.config['mainBlock']
+        self.solidBlock = self.config['solidBlock']
         self.progress = self.offset
 
     def __getPlayerPos(self, name :str) -> list:
@@ -41,7 +41,7 @@ class minecraft:
 
         result = []
         if requireFloor:
-            result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.mainBlock}')
+            result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.solidBlock}')
 
         if last == 0:
             result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
@@ -56,7 +56,7 @@ class minecraft:
     #Build Noteblock
     def __note(self, pos :list, instBlock: str, pitch: str) -> list:
         return [
-            f"setblock {' '.join(map(str, pos))} {self.mainBlock}",
+            f"setblock {' '.join(map(str, pos))} {self.solidBlock}",
             f'setblock {pos[0]} {pos[1] + 1} {pos[2]} {instBlock}',
             f'setblock {pos[0]} {pos[1] + 2} {pos[2]} minecraft:note_block[note={pitch}]'
             ]
@@ -75,7 +75,7 @@ class minecraft:
     
     def __redstone(self, pos :list) ->list:
         return [
-            f"fill {' '.join(map(str, pos))} {pos[0]} {pos[1] + 2} {pos[2]} {self.mainBlock}",
+            f"fill {' '.join(map(str, pos))} {pos[0]} {pos[1] + 2} {pos[2]} {self.solidBlock}",
             f'setblock {pos[0]} {pos[1] + 3} {pos[2]} redstone_wire'
         ]
 
@@ -127,19 +127,19 @@ class minecraft:
         commands = []
 
         #startblock
-        commands.append(f'setblock {x - 1} {y} {z} {self.mainBlock}')
+        commands.append(f'setblock {x - 1} {y} {z} {self.solidBlock}')
         commands.append(f'setblock {x - 2} {y} {z} {self.config["button"]}[face=wall, facing=west]')
         commands.append(f'setblock {x} {y} {z} redstone_wall_torch[facing=east]')
 
-        #mainblock + redstone
+        #solidBlock + redstone
         tick = 0
         for i in blockY:
             if i % 4 == blockY[0] % 4:
-                commands.append(f'fill {x} {i} {z} {x + length} {i} {z} {self.mainBlock}')
+                commands.append(f'fill {x} {i} {z} {x + length} {i} {z} {self.solidBlock}')
                 commands.append(f'fill {x + 1} {i + 1} {z} {x + length} {i + 1} {z} redstone_wire')
                 commands += self.__repeater([x + 1, i - 1, z], tick, False)[0]
             else:
-                commands.append(f'setblock {x} {i} {z} {self.mainBlock}')
+                commands.append(f'setblock {x} {i} {z} {self.solidBlock}')
             
             tick += 1
 
