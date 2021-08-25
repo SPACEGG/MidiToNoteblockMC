@@ -11,4 +11,9 @@ server.connect()
 server.login(config['password'])
 
 def execute(text):
-    return server.run(text)
+    r = server.run(text)
+    print(r)
+    return r
+
+
+execute('gamerule logAdminCommands false')

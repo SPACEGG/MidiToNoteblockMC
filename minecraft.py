@@ -1,8 +1,16 @@
 import json
 from math import ceil, floor
+from enum import Enum
 import mc_server as s
 
 class minecraft:
+
+    class Facing(Enum):
+        east = 0
+        south = 1
+        west = 2
+        north = 3
+
     def __init__(self):
         #minecraft noteblock info
         fjson = open('mc_config.json', 'r')
@@ -14,9 +22,28 @@ class minecraft:
         self.channel = 0
         self.notes = []
         self.pos = list(map(floor, self.__getPlayerPos(self.config['playerName'])))
+        self.direction = self.__getPlayerFacing(self.config['playerName'])
         self.offset = self.config['blockOffset']
         self.solidBlock = self.config['solidBlock']
         self.progress = self.offset
+
+    __strJoin = lambda self, x: " ".join(map(str, x))
+
+    def __getPlayerFacing(self, name : str) -> Facing:
+        res = s.execute(f'data get entity {name} Rotation[0]')
+        if 'was found' in res:
+            raise Exception(f'{name} is not in the server!')
+        else:
+            rotation = float(res.split()[-1][:-1])
+
+            if rotation >= -135.0 and rotation < -45.0:
+                return self.Facing.east
+            elif rotation >= -45.0 and rotation < 45.0:
+                return self.Facing.south
+            elif rotation >= 45.0 and rotation < 135.0:
+                return self.Facing.west
+            elif rotation >= 135.0 or rotation < -135.0:
+                return self.Facing.north
 
     def __getPlayerPos(self, name :str) -> list:
         res = [
@@ -31,37 +58,73 @@ class minecraft:
             result.append(float(i.split(' ')[-1][:-1]))
         return result
 
+    def __rotate(self, pos :list) -> list:
+        anchor = list(map(int, self.pos))
+        direction=self.direction
+        offsetX = pos[0] - anchor[0]
+        offsetZ = pos[2] - anchor[2]
+
+        if direction == self.Facing.south:
+            return [anchor[0] - offsetZ, pos[1], anchor[2] + offsetX]
+        elif direction == self.Facing.west:
+            return [anchor[0] - offsetX, pos[1], anchor[2] - offsetZ]
+        elif direction == self.Facing.north:
+            return [anchor[0] + offsetZ, pos[1], anchor[2] - offsetX]
+        else:
+            return pos
+
+    def __direction(self, dFrom :Facing, dTo :Facing) -> Facing:
+        return self.Facing((dFrom.value + dTo.value) % 4)
+
     #Build repeater
-    def __repeater(self, pos :list, delay :int, requireFloor=True):
+    def __repeater(self, pos :list, delay :int, requireFloor=True, isDynamicRepeater=True):
+        count = 0
+        result = []
         if delay == 0:
             return [], 0
 
-        count = delay // 4
-        last = delay % 4
-        if last != 0:
-            count += 1
+        direction = self.__direction(self.Facing.west, self.direction).name
 
-        result = []
-        if requireFloor:
-            result.append(f'fill {pos[0]} {pos[1]} {pos[2]} {pos[0] + count - 1} {pos[1] + 1} {pos[2]} {self.solidBlock}')
+        if isDynamicRepeater:
+            count = delay // 4
+            last = delay % 4
+            if last != 0:
+                count += 1
 
-        if last == 0:
-            result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
-        elif count == 1:
-            result.append(f'setblock {pos[0]} {pos[1] + 2} {pos[2]} repeater[facing=west, delay={last}]')
+            if requireFloor:
+                result.append(f'fill {self.__strJoin(self.__rotate(pos))} {self.__strJoin(self.__rotate([pos[0] + count - 1, pos[1] + 1, pos[2]]))} {self.solidBlock}')
+
+            if last == 0:
+                result.append(f'fill {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} {self.__strJoin(self.__rotate([pos[0] + count - 1, pos[1] + 2, pos[2]]))} repeater[facing={direction}, delay=4]')
+            elif count == 1:
+                result.append(f'setblock {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} repeater[facing={direction}, delay={last}]')
+            else:
+                result.append(f'fill {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} {self.__strJoin(self.__rotate([pos[0] + count - 2, pos[1] + 2, pos[2]]))} repeater[facing={direction}, delay=4]')
+                result.append(f'setblock {self.__strJoin(self.__rotate([pos[0] + count - 1, pos[1] + 2, pos[2]]))} repeater[facing={direction}, delay={last}]')
         else:
-            result.append(f'fill {pos[0]} {pos[1] + 2} {pos[2]} {pos[0] + count - 2} {pos[1] + 2} {pos[2]} repeater[facing=west, delay=4]')
-            result.append(f'setblock {pos[0] + count - 1} {pos[1] + 2} {pos[2]} repeater[facing=west, delay={last}]')
+            count = delay * 2 - 1
+
+            if requireFloor:
+                result.append(f'fill {self.__strJoin(self.__rotate(pos))} {self.__strJoin(self.__rotate([pos[0] + count - 1, pos[1] + 1, pos[2]]))} {self.solidBlock}')
+            for i in range(1, count + 1):
+                if i % 2 == 1:
+                    result.append(f'setblock {self.__strJoin(self.__rotate([pos[0] + i - 1, pos[1] + 2, pos[2]]))} repeater[facing={direction}, delay=1]')
+                else:
+                    result.append(f'setblock {self.__strJoin(self.__rotate([pos[0] + i - 1, pos[1] + 2, pos[2]]))} {self.solidBlock}')
+                pass
 
         return result, count
 
     #Build Noteblock
     def __note(self, pos :list, instBlock: str, pitch: str) -> list:
-        return [
-            f"setblock {' '.join(map(str, pos))} {self.solidBlock}",
-            f'setblock {pos[0]} {pos[1] + 1} {pos[2]} {instBlock}',
-            f'setblock {pos[0]} {pos[1] + 2} {pos[2]} minecraft:note_block[note={pitch}]'
-            ]
+        if pitch >= 0 and pitch <= 24:
+            return [
+                f"setblock {self.__strJoin(self.__rotate(pos))} {self.solidBlock}",
+                f'setblock {self.__strJoin(self.__rotate([pos[0], pos[1] + 1, pos[2]]))} {instBlock}',
+                f'setblock {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} minecraft:note_block[note={pitch}]'
+                ]
+        else:
+            return [f"fill {self.__strJoin(self.__rotate(pos))} {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} {self.solidBlock}"]
 
     #Calculate where noteblock will be placed
     def __calcPos(self, count :int) ->list:
@@ -77,8 +140,8 @@ class minecraft:
     
     def __redstone(self, pos :list) ->list:
         return [
-            f"fill {' '.join(map(str, pos))} {pos[0]} {pos[1] + 2} {pos[2]} {self.solidBlock}",
-            f'setblock {pos[0]} {pos[1] + 3} {pos[2]} redstone_wire'
+            f"fill {self.__strJoin(self.__rotate(pos))} {self.__strJoin(self.__rotate([pos[0], pos[1] + 2, pos[2]]))} {self.solidBlock}",
+            f'setblock {self.__strJoin(self.__rotate([pos[0], pos[1] + 3, pos[2]]))} redstone_wire'
         ]
 
     def __create(self, notes):
@@ -86,7 +149,7 @@ class minecraft:
             dur = i[0]
             if dur != 0:
                 pos = [self.pos[0] + self.progress, self.pos[1] + 4 * self.channel, self.pos[2]]
-                commands, progress = self.__repeater(pos, dur)
+                commands, progress = self.__repeater(pos, dur, isDynamicRepeater=self.config['isDynamicRepeater'])
                 self.progress += progress
                 break
 
@@ -119,7 +182,6 @@ class minecraft:
     
     #TODO: Finish build
     def finish(self):
-        s.execute('say STOP')
 
         length = (self.channel + 1) // 3 + 1
         x = self.pos[0] + self.offset - length - 1
@@ -127,29 +189,33 @@ class minecraft:
         blockY = range(y + (4 * self.channel) + 1, y, -2)
         z = self.pos[2]
         commands = []
-
         #startblock
-        commands.append(f'setblock {x - 1} {y} {z} {self.solidBlock}')
-        commands.append(f'setblock {x - 2} {y} {z} {self.config["button"]}[face=wall, facing=west]')
-        commands.append(f'setblock {x} {y} {z} redstone_wall_torch[facing=east]')
+        commands.append(f'setblock {self.__strJoin(self.__rotate([x - 1, y, z]))} {self.solidBlock}')
+        commands.append(f'setblock {self.__strJoin(self.__rotate([x - 2, y, z]))} {self.config["button"]}[face=wall, facing={self.__direction(self.Facing.west, self.direction).name}]')
+        commands.append(f'setblock {self.__strJoin(self.__rotate([x, y, z]))} redstone_wall_torch[facing={self.__direction(self.Facing.east, self.direction).name}]')
 
         #solidBlock + redstone
         tick = 0
         for i in blockY:
             if i % 4 == blockY[0] % 4:
-                commands.append(f'fill {x} {i} {z} {x + length} {i} {z} {self.solidBlock}')
-                commands.append(f'fill {x + 1} {i + 1} {z} {x + length} {i + 1} {z} redstone_wire')
+                commands.append(f'fill {self.__strJoin(self.__rotate([x, i, z]))} {self.__strJoin(self.__rotate([x + length, i, z]))} {self.solidBlock}')
+                commands.append(f'fill {self.__strJoin(self.__rotate([x + 1, i + 1, z]))} {self.__strJoin(self.__rotate([x + length, i + 1, z]))} redstone_wire')
                 commands += self.__repeater([x + 1, i - 1, z], tick, False)[0]
             else:
-                commands.append(f'setblock {x} {i} {z} {self.solidBlock}')
+                commands.append(f'setblock {self.__strJoin(self.__rotate([x, i, z]))} {self.solidBlock}')
             
             tick += 1
 
         #redstone_torch
-        commands.append(f'fill {x} {y + 1} {z} {x} {y + (4 * self.channel) + 2} {z} minecraft:redstone_torch replace air')
+        commands.append(f'fill {self.__strJoin(self.__rotate([x, y + 1, z]))} {self.__strJoin(self.__rotate([x, y + (4 * self.channel) + 2, z]))} minecraft:redstone_torch[lit=false] replace air')
+
+        #gamerule reset
+        commands.append('gamerule logAdminCommands true')
 
         for i in commands:
             s.execute(i)
+
+        s.execute('say STOP')
 
     def build(self, pitch :int, timestamp :int):
         dur = 0

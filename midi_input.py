@@ -33,15 +33,14 @@ def input_main(device_id=None, *callbacks):
 
     midi.init()
 
-    # print_device_info()
-
     if device_id is None:
         input_id = midi.get_default_input_id()
     else:
         input_id = device_id
 
-    print("using input_id :%s:" % input_id)
     i = midi.Input(input_id)
+    (_, name, _, _, _) = midi.get_device_info(input_id)
+    print(f"using input_id: {input_id}, {name}")
 
     pg.display.set_mode((1, 1))
 
@@ -71,9 +70,7 @@ def input_main(device_id=None, *callbacks):
 
 def midiEvent(e, callbacks):
     channel = e.status - config['firstChannel'] + 1
-    if channel > 0:
+    if channel > 0 and channel <= 16:
         # print(f'Channel:{channel}, Key: {e.data1}, Timestamp: {e.timestamp}')
         for i in callbacks:
             i(e)
-
-# input_main(config['deviceID'])
