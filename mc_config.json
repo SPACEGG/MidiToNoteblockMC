@@ -2,9 +2,7 @@
     "playerName": "DURUMI_",
     "solidBlock": "white_concrete",
     "button": "acacia_button",
-    "dimension": "overworld",
     "blockOffset": 4,
-    "tickInterval": 100,
     "isDynamicRepeater": true,
     "channels": [
         { "instrument": "harp", "block": "podzol" },
@@ -13,5 +11,7 @@
         { "instrument": "bassdrum", "block": "stone_bricks" },
         { "instrument": "snare", "block": "orange_concrete_powder" },
         { "instrument": "hat", "block": "lime_stained_glass" }
-    ]
+    ],
+
+    "tickInterval": 100
 }
