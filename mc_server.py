@@ -12,7 +12,7 @@ server.login(config['password'])
 
 def execute(text):
     r = server.run(text)
-    # print(r)
+    print(r)
     return r
 
 
