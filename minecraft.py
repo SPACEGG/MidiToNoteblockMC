@@ -145,6 +145,7 @@ class minecraft:
         ]
 
     def __create(self, notes):
+        commands = []
         for i in notes:
             dur = i[0]
             if dur != 0:
@@ -227,11 +228,6 @@ class minecraft:
         dur += round((timestamp - self.previousTime) / self.config['tickInterval'])
         block = self.config['channels'][self.channel]['block']
         self.previousTime = timestamp
-
-        if pitch < 0:
-            self.__create(self.notes)
-            self.notes = []
-            return
 
         #same time
         if dur == 0:

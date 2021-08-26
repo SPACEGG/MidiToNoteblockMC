@@ -14,13 +14,11 @@ def switch(e):
     key = e.data1
 
     if key == config['nextKey']:
-        mc.build(-1, e.timestamp)
         mc.next()
     elif key == config['stopKey']:
-        mc.build(-1, e.timestamp)
         mc.finish()
-    else:
-        mc.build(key - config['minKey'], e.timestamp)
+
+    mc.build(key - config['minKey'], e.timestamp)
 
 def arg(a):
     if a in ['-ls', '--list']:
