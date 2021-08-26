@@ -173,6 +173,9 @@ class minecraft:
 
     #Change to next channel/instrument
     def next(self):
+        self.__create(self.notes)
+        self.notes = []
+
         self.isWaiting = True
         self.channel += 1
         self.progress = self.offset
@@ -181,8 +184,10 @@ class minecraft:
         if self.channel >= len(self.config['channels']):
             pass
     
-    #TODO: Finish build
+    #Finish build
     def finish(self):
+        self.__create(self.notes)
+        self.notes = []
 
         length = (self.channel + 1) // 3 + 1
         x = self.pos[0] + self.offset - length - 1
@@ -224,7 +229,7 @@ class minecraft:
             dur += 1
             self.isWaiting = False
             self.previousTime = timestamp
-
+        
         dur += round((timestamp - self.previousTime) / self.config['tickInterval'])
         block = self.config['channels'][self.channel]['block']
         self.previousTime = timestamp

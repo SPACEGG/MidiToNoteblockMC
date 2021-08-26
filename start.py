@@ -17,8 +17,8 @@ def switch(e):
         mc.next()
     elif key == config['stopKey']:
         mc.finish()
-
-    mc.build(key - config['minKey'], e.timestamp)
+    else:
+        mc.build(key - config['minKey'], e.timestamp)
 
 def arg(a):
     if a in ['-ls', '--list']:

@@ -3,7 +3,7 @@
     "solidBlock": "white_concrete",
     "button": "acacia_button",
     "blockOffset": 4,
-    "isDynamicRepeater": true,
+    "isDynamicRepeater": false,
     "channels": [
         { "instrument": "harp", "block": "podzol" },
         { "instrument": "bass", "block": "stripped_warped_hyphae" },
