@@ -16,4 +16,4 @@ def execute(text):
     return r
 
 
-execute('gamerule logAdminCommands false')
+execute('gamerule sendCommandFeedback false')

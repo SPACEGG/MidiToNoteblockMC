@@ -216,7 +216,7 @@ class minecraft:
         commands.append(f'fill {self.__strJoin(self.__rotate([x, y + 1, z]))} {self.__strJoin(self.__rotate([x, y + (4 * self.channel) + 2, z]))} minecraft:redstone_torch[lit=false] replace air')
 
         #gamerule reset
-        commands.append('gamerule logAdminCommands true')
+        commands.append('gamerule sendCommandFeedback true')
 
         for i in commands:
             s.execute(i)
