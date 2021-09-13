@@ -8,10 +8,10 @@ fjson = open('midi_config.json', 'r')
 config = json.load(fjson)
 fjson.close()
 
+mc = minecraft()
 
 def switch(e):
     key = e.data1
-    mc = minecraft()
 
     if key == config['nextKey']:
         mc.next()
@@ -23,7 +23,8 @@ def switch(e):
 def arg(a):
     if a in ['-ls', '--list']:
         midi.print_device_info()
-    return False
+        return False
+    return True
 
 def main(argv):
     a = arg(argv[-1])

@@ -1,12 +1,12 @@
 {
     "playerName": "DURUMI_",
-    "solidBlock": "white_concrete",
-    "button": "acacia_button",
+    "solidBlock": "lime_concrete",
+    "button": "warped_button",
     "blockOffset": 4,
     "isDynamicRepeater": false,
     "channels": [
-        { "instrument": "harp", "block": "podzol" },
-        { "instrument": "bass", "block": "stripped_warped_hyphae" },
+        { "instrument": "guitar", "block": "green_wool" },
+        { "instrument": "didgeridoo", "block": "pumpkin" },
         { "instrument": "pling", "block": "glowstone" },
         { "instrument": "bassdrum", "block": "stone_bricks" },
         { "instrument": "snare", "block": "orange_concrete_powder" },

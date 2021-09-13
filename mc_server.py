@@ -15,5 +15,4 @@ def execute(text):
     print(r)
     return r
 
-
 execute('gamerule sendCommandFeedback false')
